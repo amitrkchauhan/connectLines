@@ -8,6 +8,10 @@
     />
     <title>Pipe Art Game - Phase 7 (Clear on Node Click)</title>
     <style>
+      html,body{
+        height:100%;
+        margin:0;
+      }
       body {
         margin: 0;
         padding: 0;
@@ -18,6 +22,18 @@
         height: 100vh;
         overflow: hidden;
         touch-action: none;
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+      }
+
+      .stage {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        height: 100%;
+        max-height: 1152px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
 
       canvas {
@@ -25,11 +41,53 @@
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         max-width: 100%;
         max-height: 100%;
+        display:block;
+      }
+
+      /* Hint bar on top with small background */
+      .hint {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border-radius: 12px;
+        padding: 8px 14px;
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 1.2;
+        text-align: center;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+        pointer-events: none; /* allow clicks to pass through to canvas */
+        max-width: 92%;
+      }
+
+      .hint .title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .hint .subtitle {
+        font-weight: 400;
+        opacity: 0.95;
+      }
+
+      @media (max-width:420px){
+        .hint{ font-size:13px; padding:6px 10px; }
       }
     </style>
   </head>
   <body>
-    <canvas id="gameCanvas" width="640" height="1152"></canvas>
+    <div class="stage">
+      <div class="hint">
+        <div class="title">Repair the circuit.</div>
+        <div class="subtitle">Attach same-coloured nodes.</div>
+      </div>
+
+      <canvas id="gameCanvas" width="640" height="1152" style="margin-top:100px"></canvas>
+    </div>
 
     <script>
       // --- Configuration ---
@@ -41,7 +99,6 @@
 
       // --- Assets ---
       const assets = {
-        hud: new Image(),
         gridBg: new Image(),
         // Nodes
         redNode: new Image(),
@@ -68,11 +125,11 @@
 
       // Asset loading state
       let resourcesLoaded = 0;
-      const totalResources = 18;
+      const totalResources = 17; // HUD removed
 
       // --- Game State ---
       let gameState = {
-        gridY: 0,
+        gridY: 80, // leave space for the hint bar
         cellSize: 0,
         gridHeight: 0,
 
@@ -295,7 +352,6 @@
         };
       };
 
-      load(assets.hud, "HUD Ref.png");
       load(assets.gridBg, "Circuit.png");
       load(assets.redNode, "Red Node100.png");
       load(assets.yellowNode, "YellowNode100.png");
@@ -320,12 +376,7 @@
 
       // --- Logic ---
       function calculateLayout() {
-        let hudHeight = 100;
-        if (assets.hud.complete && assets.hud.naturalWidth !== 0) {
-          const hudAspectRatio = assets.hud.height / assets.hud.width;
-          hudHeight = CANVAS_WIDTH * hudAspectRatio;
-        }
-        gameState.gridY = hudHeight;
+        // gridY is fixed so there's room for the hint bar
         gameState.cellSize = CANVAS_WIDTH / GRID_COLS;
         gameState.gridHeight = gameState.cellSize * GRID_ROWS;
       }
@@ -349,8 +400,6 @@
         ctx.fillStyle = BG_COLOR;
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        /*if (assets.hud.complete)
-          ctx.drawImage(assets.hud, 0, 0, CANVAS_WIDTH, gameState.gridY);*/
         if (assets.gridBg.complete)
           ctx.drawImage(
             assets.gridBg,
@@ -567,4 +616,3 @@
     </script>
   </body>
 </html>
-
