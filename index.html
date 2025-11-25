@@ -604,7 +604,7 @@
       // Fallback: redirect to about:blank so user sees a blank page (unobtrusive)
       // (This ensures something happens even if window.close() is blocked.)
       window.location.href = "about:blank";
-    }, 2000);
+    }, 500);
   } else {
     // Not all completed — cancel any pending timer
     if (gameState.completionTimer) {
@@ -616,3 +616,4 @@
     </script>
   </body>
 </html>
+
