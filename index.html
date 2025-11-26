@@ -597,7 +597,9 @@
     gameState.completionTimer = setTimeout(() => {
       // Try to close the window (works if page was opened by script)
       try {
-        window.close();
+        // window.close();
+        window.parent.postMessage({ type: "game_event", message: "Hello from Construct 3 "}, "*");
+
       } catch (e) {
         // ignore
       }
@@ -616,4 +618,5 @@
     </script>
   </body>
 </html>
+
 
