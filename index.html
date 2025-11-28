@@ -8,9 +8,10 @@
     />
     <title>Pipe Art Game - Phase 7 (Clear on Node Click)</title>
     <style>
-      html,body{
-        height:100%;
-        margin:0;
+      html,
+      body {
+        height: 100%;
+        margin: 0;
       }
       body {
         margin: 0;
@@ -24,7 +25,7 @@
         touch-action: none;
         font-family: Inter, system-ui, -apple-system, sans-serif;
       }
-
+ 
       .stage {
         position: relative;
         width: 100%;
@@ -35,15 +36,15 @@
         justify-content: center;
         align-items: center;
       }
-
+ 
       canvas {
         background-color: #000000;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         max-width: 100%;
         max-height: 100%;
-        display:block;
+        display: block;
       }
-
+ 
       /* Hint bar on top with small background */
       .hint {
         position: absolute;
@@ -59,23 +60,26 @@
         font-size: 14px;
         line-height: 1.2;
         text-align: center;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
         pointer-events: none; /* allow clicks to pass through to canvas */
         max-width: 92%;
       }
-
+ 
       .hint .title {
         font-weight: 600;
         margin-bottom: 4px;
       }
-
+ 
       .hint .subtitle {
         font-weight: 400;
         opacity: 0.95;
       }
-
-      @media (max-width:420px){
-        .hint{ font-size:13px; padding:6px 10px; }
+ 
+      @media (max-width: 420px) {
+        .hint {
+          font-size: 13px;
+          padding: 6px 10px;
+        }
       }
     </style>
   </head>
@@ -85,10 +89,15 @@
         <div class="title">Repair the circuit.</div>
         <div class="subtitle">Attach same-coloured nodes.</div>
       </div>
-
-      <canvas id="gameCanvas" width="640" height="1152" style="margin-top:100px"></canvas>
+ 
+      <canvas
+        id="gameCanvas"
+        width="640"
+        height="1152"
+        style="margin-top: 100px"
+      ></canvas>
     </div>
-
+ 
     <script>
       // --- Configuration ---
       const CANVAS_WIDTH = 640;
@@ -96,7 +105,7 @@
       const BG_COLOR = "#000000";
       const GRID_ROWS = 5;
       const GRID_COLS = 5;
-
+ 
       // --- Assets ---
       const assets = {
         gridBg: new Image(),
@@ -122,17 +131,17 @@
         yellowBend: new Image(),
         yellowCap: new Image(),
       };
-
+ 
       // Asset loading state
       let resourcesLoaded = 0;
       const totalResources = 17; // HUD removed
-
+ 
       // --- Game State ---
       let gameState = {
         gridY: 80, // leave space for the hint bar
         cellSize: 0,
         gridHeight: 0,
-
+ 
         // Gameplay
         isDragging: false,
         activeColor: null,
@@ -149,12 +158,11 @@
           blue: false,
           green: false,
         },
-
-
+ 
         // timer id used to auto-close the page once all colors are done
         completionTimer: null,
       };
-
+ 
       // Level Data
       const levelNodes = [
         { row: 0, col: 2, color: "red", img: "redNode" },
@@ -166,11 +174,11 @@
         { row: 1, col: 0, color: "blue", img: "blueNode" },
         { row: 3, col: 3, color: "blue", img: "blueNode" },
       ];
-
+ 
       // --- Setup ---
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
-
+ 
       // --- Input Event Listeners ---
       canvas.addEventListener("mousedown", handleStart);
       canvas.addEventListener("mousemove", handleMove);
@@ -178,37 +186,37 @@
       canvas.addEventListener("touchstart", (e) => handleStart(e.touches[0]));
       canvas.addEventListener("touchmove", (e) => handleMove(e.touches[0]));
       canvas.addEventListener("touchend", handleEnd);
-
+ 
       function getGridPos(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = CANVAS_WIDTH / rect.width;
         const scaleY = CANVAS_HEIGHT / rect.height;
-
+ 
         const x = (clientX - rect.left) * scaleX;
         const y = (clientY - rect.top) * scaleY;
-
+ 
         if (y < gameState.gridY || y > gameState.gridY + gameState.gridHeight)
           return null;
-
+ 
         const col = Math.floor(x / gameState.cellSize);
         const row = Math.floor((y - gameState.gridY) / gameState.cellSize);
-
+ 
         // FIXED: proper row/col bounds check
         if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
           return { row, col };
         }
         return null;
       }
-
+ 
       function handleStart(e) {
         e.preventDefault && e.preventDefault();
         const pos = getGridPos(e.clientX, e.clientY);
         if (!pos) return;
-
+ 
         const node = levelNodes.find(
           (n) => n.row === pos.row && n.col === pos.col
         );
-
+ 
         if (node) {
           // If this color already locked (completed), clicking the node clears it (unlock)
           if (gameState.locked[node.color]) {
@@ -217,27 +225,45 @@
             // stop any drag (user clicked to clear)
             gameState.isDragging = false;
             gameState.activeColor = null;
-
+ 
             // cancel completion timer (if all were completed before)
-          if (gameState.completionTimer) {
-            clearTimeout(gameState.completionTimer);
-            gameState.completionTimer = null;
-          }
+            if (gameState.completionTimer) {
+              clearTimeout(gameState.completionTimer);
+              gameState.completionTimer = null;
+            }
             return;
           }
-
+ 
           // If not locked, start drawing from this node
           gameState.isDragging = true;
           gameState.activeColor = node.color;
           // When starting, reset path to just the start node
           gameState.paths[node.color] = [pos];
+        } else {
+          // If not a node, check if it's on an existing (unlocked) path to backtrack
+          for (const color in gameState.paths) {
+            if (gameState.locked[color]) continue; // Skip completed paths
+ 
+            const path = gameState.paths[color];
+            const pathIndex = path.findIndex(
+              (p) => p.row === pos.row && p.col === pos.col
+            );
+ 
+            if (pathIndex !== -1) {
+              // Backtrack to this point and start dragging from here
+              gameState.paths[color] = path.slice(0, pathIndex + 1);
+              gameState.isDragging = true;
+              gameState.activeColor = color;
+              return; // Found our target, no need to check other paths
+            }
+          }
         }
       }
-
+ 
       function handleMove(e) {
         if (!gameState.isDragging || !gameState.activeColor) return;
         e.preventDefault && e.preventDefault();
-
+ 
         const color = gameState.activeColor;
         // If this color is locked, ignore any further moves
         if (gameState.locked[color]) {
@@ -246,19 +272,19 @@
           gameState.activeColor = null;
           return;
         }
-
+ 
         const pos = getGridPos(e.clientX, e.clientY);
         if (!pos) return;
-
+ 
         const path = gameState.paths[color];
         const lastPos = path[path.length - 1];
-
+ 
         if (pos.row !== lastPos.row || pos.col !== lastPos.col) {
           const isAdjacent =
             Math.abs(pos.row - lastPos.row) +
               Math.abs(pos.col - lastPos.col) ===
             1;
-
+ 
           if (isAdjacent) {
             // Backtracking
             if (path.length > 1) {
@@ -268,17 +294,17 @@
                 return;
               }
             }
-
+ 
             // Collision
             if (isCellOccupied(pos.row, pos.col, color)) return;
-
+ 
             // Add to path
             const alreadyInPath = path.some(
               (p) => p.row === pos.row && p.col === pos.col
             );
             if (!alreadyInPath) {
               path.push(pos);
-
+ 
               // After pushing, check whether we've reached the target node of the same color
               // Target node = any node of same color that is NOT the starting node
               const sameColorNodes = levelNodes.filter(
@@ -298,7 +324,7 @@
                   // end dragging immediately
                   gameState.isDragging = false;
                   gameState.activeColor = null;
-                    // Check whether all colors are complete and start the auto-close timer if so
+                  // Check whether all colors are complete and start the auto-close timer if so
                   checkAllCompleted();
                 }
               }
@@ -306,7 +332,7 @@
           }
         }
       }
-
+ 
       function isCellOccupied(r, c, myColor) {
         // Check Nodes (cannot run over other color nodes)
         const node = levelNodes.find((n) => n.row === r && n.col === c);
@@ -319,7 +345,7 @@
             return true;
           }
         }
-
+ 
         // Check Paths (cannot run over other color paths)
         for (const key in gameState.paths) {
           if (key === myColor) continue;
@@ -328,12 +354,12 @@
         }
         return false;
       }
-
+ 
       function handleEnd(e) {
         gameState.isDragging = false;
         gameState.activeColor = null;
       }
-
+ 
       // --- Asset Management ---
       function onAssetLoaded() {
         resourcesLoaded++;
@@ -342,7 +368,7 @@
           requestAnimationFrame(gameLoop);
         }
       }
-
+ 
       const load = (asset, src) => {
         asset.src = src;
         asset.onload = onAssetLoaded;
@@ -351,36 +377,36 @@
           onAssetLoaded();
         };
       };
-
+ 
       load(assets.gridBg, "Circuit.png");
       load(assets.redNode, "Red Node100.png");
       load(assets.yellowNode, "YellowNode100.png");
       load(assets.blueNode, "Blue Node100.png");
       load(assets.greenNode, "Green Node100.png");
-
+ 
       load(assets.redStraight, "RedPipestate.png");
       load(assets.redBend, "RedPipeBend.png");
       load(assets.redCap, "RedPipestartend.png");
-
+ 
       load(assets.blueStraight, "BluePipestate.png");
       load(assets.blueBend, "BluePipeBend.png");
       load(assets.blueCap, "BluePipestartend.png");
-
+ 
       load(assets.greenStraight, "GreenPipestate.png");
       load(assets.greenBend, "GreenPipeBend.png");
       load(assets.greenCap, "GreenPipestartend.png");
-
+ 
       load(assets.yellowStraight, "YellowPipestate.png");
       load(assets.yellowBend, "YellowPipeBend.png");
       load(assets.yellowCap, "YellowPipestartend.png");
-
+ 
       // --- Logic ---
       function calculateLayout() {
         // gridY is fixed so there's room for the hint bar
         gameState.cellSize = CANVAS_WIDTH / GRID_COLS;
         gameState.gridHeight = gameState.cellSize * GRID_ROWS;
       }
-
+ 
       function resize() {
         const scaleX = window.innerWidth / CANVAS_WIDTH;
         const scaleY = window.innerHeight / CANVAS_HEIGHT;
@@ -390,16 +416,16 @@
       }
       window.addEventListener("resize", resize);
       resize();
-
+ 
       function gameLoop() {
         render();
         requestAnimationFrame(gameLoop);
       }
-
+ 
       function render() {
         ctx.fillStyle = BG_COLOR;
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
+ 
         if (assets.gridBg.complete)
           ctx.drawImage(
             assets.gridBg,
@@ -412,8 +438,9 @@
           ctx.fillStyle = "#222";
           ctx.fillRect(0, gameState.gridY, CANVAS_WIDTH, gameState.gridHeight);
         }
-
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+ 
+        ctx.strokeStyle = "rgb(61, 58, 75)";
+        // ctx.strokeStyle = "grey";
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let i = 0; i <= GRID_COLS; i++) {
@@ -427,12 +454,12 @@
           ctx.lineTo(CANVAS_WIDTH, y);
         }
         ctx.stroke();
-
+ 
         // draw all pipes (base pass)
         ["red", "yellow", "blue", "green"].forEach((color) => {
           drawPath(gameState.paths[color], color);
         });
-
+ 
         // draw nodes
         levelNodes.forEach((node) => {
           const img = assets[node.img];
@@ -450,17 +477,17 @@
             );
           }
         });
-
+ 
         // --- redraw start & end segments above nodes ---
         ["red", "yellow", "blue", "green"].forEach((color) => {
           const path = gameState.paths[color];
           if (!path || path.length === 0) return;
-
+ 
           // start segment (path[0] as cap oriented toward path[1])
           const start = path[0];
           const startNext = path.length > 1 ? path[1] : null;
           drawPipeSegment(start, null, startNext, color);
-
+ 
           // end segment (last cell as cap oriented toward previous)
           if (path.length > 1) {
             const last = path[path.length - 1];
@@ -471,10 +498,10 @@
           }
         });
       }
-
+ 
       function drawPath(path, color) {
         if (!path || path.length === 0) return;
-
+ 
         for (let i = 0; i < path.length; i++) {
           const curr = path[i];
           const prev = i > 0 ? path[i - 1] : null;
@@ -482,21 +509,21 @@
           drawPipeSegment(curr, prev, next, color);
         }
       }
-
+ 
       function drawPipeSegment(curr, prev, next, color) {
         const straightImg = assets[color + "Straight"];
         const bendImg = assets[color + "Bend"];
         const capImg = assets[color + "Cap"];
-
+ 
         const cx = curr.col * gameState.cellSize + gameState.cellSize / 2;
         const cy =
           gameState.gridY +
           curr.row * gameState.cellSize +
           gameState.cellSize / 2;
-
+ 
         ctx.save();
         ctx.translate(cx, cy);
-
+ 
         // CASE 1: End of line (Cap)
         if (!prev || !next) {
           const neighbor = prev || next;
@@ -504,13 +531,13 @@
             const dx = neighbor.col - curr.col;
             const dy = neighbor.row - curr.row;
             let angle = 0;
-
+ 
             // Cap logic (Asset Points UP, Connection is BOTTOM)
             if (dx === 1) angle = -Math.PI / 2; // Right
             else if (dy === 1) angle = 0; // Down
             else if (dx === -1) angle = Math.PI / 2; // Left
             else if (dy === -1) angle = Math.PI; // Up
-
+ 
             ctx.rotate(angle);
             ctx.drawImage(
               capImg,
@@ -527,7 +554,7 @@
           const dy1 = curr.row - prev.row;
           const dx2 = next.col - curr.col;
           const dy2 = next.row - curr.row;
-
+ 
           // Straight (Horizontal Asset)
           if (dx1 === dx2 && dy1 === dy2) {
             if (dy1 !== 0) ctx.rotate(Math.PI / 2);
@@ -546,9 +573,9 @@
             const hasDown = prev.row > curr.row || next.row > curr.row;
             const hasLeft = prev.col < curr.col || next.col < curr.col;
             const hasRight = prev.col > curr.col || next.col > curr.col; // Corrected: Check for neighbor greater than current col
-
+ 
             let angle = 0;
-
+ 
             // Asset is Top-Left (Up & Left) by default (0 rotation)
             if (hasUp && hasLeft) {
               angle = 0;
@@ -565,7 +592,7 @@
             else if (hasRight && hasUp) {
               angle = Math.PI / 2; // 270 (-90)
             }
-
+ 
             ctx.rotate(angle);
             ctx.drawImage(
               bendImg,
@@ -576,47 +603,48 @@
             );
           }
         }
-
+ 
         ctx.restore();
       }
-
+ 
       function checkAllCompleted() {
-  // find all distinct colors that appear in levelNodes (handles levels with fewer colors)
-  const levelColors = [...new Set(levelNodes.map((n) => n.color))];
-
-  const allLocked = levelColors.every((c) => gameState.locked[c]);
-
-  if (allLocked) {
-    // clear any previous timer just in case
-    if (gameState.completionTimer) {
-      clearTimeout(gameState.completionTimer);
-      gameState.completionTimer = null;
-    }
-
-    // start a 2 second timer to close the page
-    gameState.completionTimer = setTimeout(() => {
-      // Try to close the window (works if page was opened by script)
-      try {
-        // window.close();
-        window.parent.postMessage({ type: "game_event", message: "Hello from Construct 3 "}, "*");
-
-      } catch (e) {
-        // ignore
+        // find all distinct colors that appear in levelNodes (handles levels with fewer colors)
+        const levelColors = [...new Set(levelNodes.map((n) => n.color))];
+ 
+        const allLocked = levelColors.every((c) => gameState.locked[c]);
+ 
+        if (allLocked) {
+          // clear any previous timer just in case
+          if (gameState.completionTimer) {
+            clearTimeout(gameState.completionTimer);
+            gameState.completionTimer = null;
+          }
+ 
+          // start a 2 second timer to close the page
+          gameState.completionTimer = setTimeout(() => {
+            // Try to close the window (works if page was opened by script)
+            try {
+              // window.close();
+              window.parent.postMessage(
+                { type: "game_event", message: "Hello from Construct 3 " },
+                "*"
+              );
+            } catch (e) {
+              // ignore
+            }
+            // Fallback: redirect to about:blank so user sees a blank page (unobtrusive)
+            // (This ensures something happens even if window.close() is blocked.)
+            window.location.href = "about:blank";
+          }, 500);
+        } else {
+          // Not all completed — cancel any pending timer
+          if (gameState.completionTimer) {
+            clearTimeout(gameState.completionTimer);
+            gameState.completionTimer = null;
+          }
+        }
       }
-      // Fallback: redirect to about:blank so user sees a blank page (unobtrusive)
-      // (This ensures something happens even if window.close() is blocked.)
-      window.location.href = "about:blank";
-    }, 500);
-  } else {
-    // Not all completed — cancel any pending timer
-    if (gameState.completionTimer) {
-      clearTimeout(gameState.completionTimer);
-      gameState.completionTimer = null;
-    }
-  }
-}
     </script>
   </body>
 </html>
-
-
+ 
